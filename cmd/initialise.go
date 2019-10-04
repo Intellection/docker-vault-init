@@ -53,7 +53,7 @@ type InitResponse struct {
 	KeysBase64         []string `json:"keys_base64"`
 	RootToken          string   `json:"root_token"`
 	RecoveryKeys       []string `json:"recovery_keys"`
-	RecoveryKeysBase64 []string `"recovery_keys_base64"`
+	RecoveryKeysBase64 []string `json:"recovery_keys_base64"`
 }
 
 // initialiseCmd represents the initialise command
