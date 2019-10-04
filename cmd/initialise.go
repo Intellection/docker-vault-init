@@ -79,16 +79,16 @@ to quickly create a Cobra application.`,
 
 		// encrypt tokens with AWS KMS
 		fmt.Println("Encrypting root token...")
-		encryptedToken, err_e := kmsClient.Encrypt(&kms.EncryptInput{
+		encryptedToken, errE := kmsClient.Encrypt(&kms.EncryptInput{
 			KeyId: aws.String(fullKeyID(os.Args[1], os.Args[2])),
 			Plaintext: []byte(rootToken),
 		})
-		checkError(err_e)
+		checkError(errE)
 		fmt.Println("Encryption complete.")
 
-		hostname, err_h := os.Hostname()
-		if err_h != nil {
-			panic(err_h)
+		hostname, errH := os.Hostname()
+		if errH != nil {
+			panic(errH)
 		}
 
 		tokenFileName := hostname+ "_token"
@@ -99,12 +99,12 @@ to quickly create a Cobra application.`,
 		fmt.Println("Uploading encrypted token to S3...")
 		f := openFile(tokenFileName)
 
-		s3Result, err_s3 := uploader.Upload(&s3manager.UploadInput{
+		s3Result, errS3 := uploader.Upload(&s3manager.UploadInput{
 			Bucket: aws.String("encrypted-tokens"),
 			Key:    aws.String(tokenFileName),
 			Body:   f,
 		})
-		checkError(err_s3)
+		checkError(errS3)
 		fmt.Println("Encrypted token successfully uploaded to S3 at", s3Result.Location)
 	},
 }
@@ -177,8 +177,8 @@ func writeToFile(filename string, content []byte) {
 }
 
 func openFile(filename string) *os.File {
-	f, err_f  := os.Open(filename)
-	checkError(err_f)
+	f, errF  := os.Open(filename)
+	checkError(errF)
 
 	return f
 }
