@@ -1,4 +1,7 @@
 SHELL := /bin/bash
+
+.PHONY: tools lint build dependencies test
+
 tools:
 	# install gometalinter
 	go get -u github.com/alecthomas/gometalinter
@@ -17,3 +20,7 @@ build:
 	go build -o ./bin/vault-init
 	@echo
 	@./bin/vault-init version
+dependencies:
+	dep ensure
+test:
+	go test -v ./...
