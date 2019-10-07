@@ -38,7 +38,7 @@ import (
 
 var httpClient    http.Client
 
-// InitRequest holds a Vault init request.
+// InitPayload holds a Vault init request.
 type InitPayload struct {
 	RecoveryShares    int `json:"recovery_shares"`
 	RecoveryThreshold int `json:"recovery_threshold"`
