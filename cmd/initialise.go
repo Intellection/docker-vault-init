@@ -122,7 +122,7 @@ func checkError(e error) {
 func initVault() string {
 	vaultAddr := os.Getenv("VAULT_ADDR")
 	if vaultAddr == "" {
-		vaultAddr = "https://127.0.0.1:8200"
+		vaultAddr = "http://127.0.0.1:8200"
 	}
 
 	httpClient = http.Client{
