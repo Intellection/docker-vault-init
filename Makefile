@@ -17,9 +17,9 @@ lint:
 
 build:
 	@mkdir -p bin/
-	go build -o ./bin/docker-vault-init
+	go build -o ./bin/vault-init
 	@echo
-	@./bin/docker-vault-init version
+	@./bin/vault-init version
 dependencies:
 	dep ensure
 test:

@@ -20,7 +20,7 @@
 
 package main
 
-import "github.com/Intellection/docker-vault-init/cmd"
+import "github.com/Intellection/vault-init/cmd"
 
 func main() {
   cmd.Execute()
