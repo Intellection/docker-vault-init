@@ -73,7 +73,7 @@ need to read from or write to the Vault instance.`,
 		fmt.Println("Initialisation complete")
 
 		// AWS setup
-		region := "us-east-1"
+		region := os.Getenv("AWS_REGION")
 		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 		var kmsClient = kms.New(sess, aws.NewConfig().WithRegion(region))
 		uploader := s3manager.NewUploader(sess)
@@ -81,7 +81,7 @@ need to read from or write to the Vault instance.`,
 		// encrypt tokens with AWS KMS
 		fmt.Println("Encrypting root token...")
 		encryptedToken, errE := kmsClient.Encrypt(&kms.EncryptInput{
-			KeyId: aws.String(fullKeyID(os.Args[1], os.Args[2])),
+			KeyId: aws.String(fullKeyID(os.Args[1], os.Args[2], region)),
 			Plaintext: []byte(rootToken),
 		})
 		checkError(errE)
@@ -184,7 +184,7 @@ func openFile(filename string) *os.File {
 	return f
 }
 
-func fullKeyID(accountID string, keyID string) (string) {
-	baseString := fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/%s", accountID, keyID)
+func fullKeyID(accountID string, keyID string, region string) (string) {
+	baseString := fmt.Sprintf("arn:aws:kms:region:%s:key/%s", accountID, keyID)
 	return baseString
 }
