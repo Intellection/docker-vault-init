@@ -5,4 +5,11 @@ go:
 before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
   - make dependencies
-script: make test
+jobs:
+  include:
+    - stage: "Lint"
+      name: "Golang Linting"
+      script: make lint
+    - stage: "Test"
+      name: "Unit Tests"
+      script: make test
