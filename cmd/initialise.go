@@ -58,13 +58,14 @@ type InitResponse struct {
 // initialiseCmd represents the initialise command
 var initialiseCmd = &cobra.Command{
 	Use:   "initialise",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Intitial a specified instance of Vault",
+	Long: `This command makes a requets to instance of Vault at the specified Vault address
+to initialise the instance. This command currently assumes that auto-unseal has
+been setup to occur during Vault initialisation.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Once it has received the token in the response from Vault, it will encrypt and
+store this token on S3 when it can be used for authentication by entities that
+need to read from or write to the Vault instance.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// make vault init request and get root token
 		fmt.Println("Initialising Vault...")
