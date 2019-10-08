@@ -5,6 +5,7 @@ go:
 before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
   - make dependencies
+  - make tools
 jobs:
   include:
     - stage: "Lint"
