@@ -58,7 +58,7 @@ type InitResponse struct {
 // initialiseCmd represents the initialise command
 var initialiseCmd = &cobra.Command{
 	Use:   "initialise",
-	Short: "Intitial a specified instance of Vault",
+	Short: "Intitialise a specified instance of Vault",
 	Long: `This command makes a requets to instance of Vault at the specified Vault address
 to initialise the instance. This command currently assumes that auto-unseal has
 been setup to occur during Vault initialisation.
