@@ -21,6 +21,7 @@ build:
 	@echo
 	@./bin/vault-init version
 dependencies:
+
 	dep ensure
 test:
 	go test -v ./...
