@@ -1,4 +1,7 @@
 # Vault Init
+
+[![Build Status](https://travis-ci.org/Intellection/vault-init.svg?branch=master)](https://travis-ci.org/Intellection/vault-init)
+
 This is a tool to automate initialising Vault, encrypting the resulting root token with AWS KMS, and storing that token on AWS S3.
 
 ## Development
