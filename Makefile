@@ -19,8 +19,10 @@ build:
 	@mkdir -p bin/
 	go build -o ./bin/vault-init
 	@echo
+
 	@./bin/vault-init version
 dependencies:
+
 	dep ensure
 test:
 	go test -v ./...
