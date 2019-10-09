@@ -185,6 +185,6 @@ func openFile(filename string) *os.File {
 }
 
 func fullKeyID(accountID string, keyID string, region string) (string) {
-	baseString := fmt.Sprintf("arn:aws:kms:region:%s:key/%s", accountID, keyID)
+	baseString := fmt.Sprintf("arn:aws:kms:%s:%s:key/%s", region, accountID, keyID)
 	return baseString
 }
