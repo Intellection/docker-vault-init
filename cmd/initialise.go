@@ -64,7 +64,7 @@ to initialise the instance. This command currently assumes that auto-unseal has
 been setup to occur during Vault initialisation.
 
 Once it has received the token in the response from Vault, it will encrypt and
-store this token on S3 when it can be used for authentication by entities that
+store this token on S3 from where it can be used for authentication by entities that
 need to read from or write to the Vault instance.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// make vault init request and get root token
