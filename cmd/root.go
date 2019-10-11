@@ -42,7 +42,6 @@ import (
 
 var httpClient    http.Client
 
-
 var cfgFile string
 
 // InitPayload holds a Vault init request.
@@ -130,7 +129,6 @@ func init() {
 	cobra.OnInitialize(initConfig)
 }
 
-
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" {
@@ -211,7 +209,6 @@ func initVault() string {
 		panic(errUn)
 	}
 
-
 	return initResponse.RootToken
 }
 
@@ -231,4 +228,3 @@ func fullKeyID(accountID string, keyID string, region string) (string) {
 	baseString := fmt.Sprintf("arn:aws:kms:%s:%s:key/%s", region, accountID, keyID)
 	return baseString
 }
-
