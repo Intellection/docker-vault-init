@@ -3,14 +3,14 @@
 
 [[projects]]
   branch = "add_init_script"
-  digest = "1:330af68b6af13e9c175e8a84a964e4e411b1144c97be58e4e9923ff7efb18dd0"
+  digest = "1:9a471932831a48be6cfdef1e7aa123eaa818acd04f38c3f211b2041cd776706e"
   name = "github.com/Intellection/vault-init"
   packages = ["cmd"]
   pruneopts = "UT"
-  revision = "2f8e4a9b2b3f058507964cabaa59776cae62168a"
+  revision = "35de9ad9b5961ba8473cb973fb7da740776092ea"
 
 [[projects]]
-  digest = "1:b3685e619110d4cf7bcdb2b9cb59fb6bdc106d417ab1010f48849486b18ddc71"
+  digest = "1:0c47f2f6b93f912968db693b034a69c2f4dc4023f3ffa81f3e97b39a1e287b54"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -56,8 +56,8 @@
     "service/sts/stsiface",
   ]
   pruneopts = "UT"
-  revision = "472ba41213bd699ff50a642b60afd89181d7bb9b"
-  version = "v1.25.6"
+  revision = "7887c50469757b81cb4ce19343755fd7a8d0c808"
+  version = "v1.25.10"
 
 [[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
@@ -73,14 +73,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "c2b33e84"
-
-[[projects]]
-  digest = "1:5d231480e1c64a726869bc4142d270184c419749d34f167646baa21008eb0a79"
-  name = "github.com/mitchellh/go-homedir"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "af06845cf3004701891bf4fdb884bfe4920b3727"
-  version = "v1.1.0"
 
 [[projects]]
   digest = "1:e096613fb7cf34743d49af87d197663cfccd61876e2219853005a57baedfa562"
@@ -107,7 +99,6 @@
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/kms",
     "github.com/aws/aws-sdk-go/service/s3/s3manager",
-    "github.com/mitchellh/go-homedir",
     "github.com/spf13/cobra",
   ]
   solver-name = "gps-cdcl"
