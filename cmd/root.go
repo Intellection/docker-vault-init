@@ -36,6 +36,7 @@ import (
 	"os"
 )
 
+
 var httpClient    http.Client
 
 var cfgFile string
@@ -121,9 +122,7 @@ func Execute() {
 	}
 }
 
-func init() {
-
-}
+func init() {}
 
 func checkError(e error) {
 	if e != nil {
