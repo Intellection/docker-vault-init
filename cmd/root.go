@@ -36,7 +36,6 @@ import (
 	"os"
 )
 
-
 var httpClient    http.Client
 
 var cfgFile string
