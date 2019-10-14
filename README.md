@@ -23,7 +23,6 @@ The instructions below are only necessary if you intend to work on the source co
 1. Install application dependencies via `make dependencies` (they'll be placed
    in `./vendor`). Requires [golang/dep][dep] package manager.
 1. Build and install the binary with `make build tag=x.y.z`.
-1. Run the command e.g. `./bin/vault-init help` as a basic test.
 
 ### Testing
 
