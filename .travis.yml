@@ -1,16 +1,32 @@
----
 language: go
 go:
-  - "1.13.x"
+- 1.13.x
 before_install:
-  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-  - make dependencies
-  - make tools
+- curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+- make dependencies
+- make tools
 jobs:
   include:
-    - stage: "Lint"
-      name: "Golang Linting"
-      script: make lint
-    - stage: "Test"
-      name: "Unit Tests"
-      script: make test
+  - stage: Lint
+    name: Golang Linting
+    script: make lint
+  - stage: Test
+    name: Unit Tests
+    script: make test
+before_deploy:
+- "./scripts/compile.sh ${TRAVIS_TAG} ${TRAVIS_COMMIT}"
+deploy:
+  - provider: releases
+    api_key:
+      secure: "emd0kCBTKK6knoAyquS4ysNJRSttRg03ayouHUoYoOGbNlwGKyD/+C6i8ICYRC17alHYB2EyTJLZ7tVmUzIT5W/Iabaar7TFhe+z9qW0Oil5vRiNYvdTSDGT5ageQwbaCLQNTV250a7bZUuhUzOf9tIHw/Uhe7f+/vZecWfL+zen1ZoUHzaHgyfxaT80WN7jXr3BJnl5QAyPnMJ7eVwT9VzLoDAzmtUA44+yGwmBIqI69oyqEkCM6uo6jYp2zcTh9bJYM+3oVxn4uPUn+dBPpaWetUBPbHN6//Ss62Y3M34B6lBpXF3JV3CMqNQ0Inb8w93ta/gw6xtCBh4gAJw/yraBxBCxFPkaShIqXvxFQUJaMoxWPkD3VZNE4vFxsqEbSJoTxaQPFSZ7xbJEclXxBheMRtZP2n831lRMbbxT82gVExghmPZnof9cFjOIPv/b9NQ0K8XoOZwnM9rgN3Fx6qWtYtk6+34jBG5eiFqXsP1QXLvyY4ng31ozafGgW8jWlmtHGbNXXJ+KaWuxbgZDgjSikrqqbemCf8xH6CjXUTV6jdZCghpALI7u0w6brkzjCh5E0Fon5x7iJkD8YcQp+SktvvVvGcYSRg0P3+DYObRdhoJFfP5Mjx+kIr4WeDboy66SQwmiqVvEyWfW4lPIOql0kRq00orpvmEGvxewLNo="
+    skip_cleanup: true
+    file_glob: true
+    file: bin/*
+    name: Version ${TRAVIS_TAG}
+    prerelease: false
+    on:
+      condition: ${TRAVIS_TAG} =~ ^[0-9]+\.[0-9]+\.[0-9]+$
+      repo: itskingori/sanaa
+      tags: true
+after_deploy:
+  - "./scripts/trigger.sh ${TRAVIS_TAG}"
