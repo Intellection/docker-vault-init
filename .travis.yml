@@ -1,21 +1,21 @@
 ---
 language: go
 go:
-- 1.13.x
+  - 1.13.x
 before_install:
-- curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-- make dependencies
-- make tools
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - make dependencies
+  - make tools
 jobs:
   include:
-  - stage: Lint
-    name: Golang Linting
-    script: make lint
-  - stage: Test
-    name: Unit Tests
-    script: make test
+    - stage: Lint
+      name: Golang Linting
+      script: make lint
+    - stage: Test
+      name: Unit Tests
+      script: make test
 before_deploy:
-- "./scripts/compile.sh ${TRAVIS_TAG} ${TRAVIS_COMMIT}"
+  - "./scripts/compile.sh ${TRAVIS_TAG} ${TRAVIS_COMMIT}"
 deploy:
   - provider: releases
     api_key:
