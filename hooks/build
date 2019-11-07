@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "Running build hook"
+docker build --build-arg VAULT_INIT_VERSION="${SOURCE_BRANCH}" -t "${IMAGE_NAME}" .
