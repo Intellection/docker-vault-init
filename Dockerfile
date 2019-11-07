@@ -14,7 +14,7 @@ RUN wget --progress="dot:mega" "https://github.com/Intellection/vault-init/relea
     wget --progress="dot:mega" "https://github.com/Intellection/vault-init/releases/download/${VAULT_INIT_VERSION}/${VAULT_INIT_PACKAGE}-shasum-256.txt" && \
     sha256sum -c "${VAULT_INIT_PACKAGE}-shasum-256.txt" && \
     tar --no-same-owner -xzf "${VAULT_INIT_PACKAGE}.tar.gz" && \
-    mv "/${VAULT_INIT_PACKAGE}" "/usr/local/bin/vault-init" && \
+    mv "${VAULT_INIT_PACKAGE}" "/usr/local/bin/vault-init" && \
     chmod +x "/usr/local/bin/vault-init" && \
     rm -f ${VAULT_INIT_PACKAGE}*
 
