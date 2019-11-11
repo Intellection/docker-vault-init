@@ -34,6 +34,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 )
 
 
@@ -70,9 +72,37 @@ Once it has received the token in the response from Vault, it will encrypt and
 store this token on S3 from where it can be used for authentication by entities that
 need to read from or write to the Vault instance.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		vaultAddr := os.Getenv("VAULT_ADDR")
+		if vaultAddr == "" {
+			vaultAddr = "http://127.0.0.1:8200"
+		}
+
+		httpClient = http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: false,
+				},
+			},
+		}
+		healthCode := healthCheck(vaultAddr)
+		switch healthCode {
+		case 200:
+			log.Println("Vault is initialised and unsealed. Exiting...")
+			return
+		case 429:
+			log.Println("Vault is unsealed and in standby mode. Exiting...")
+			return
+		case 501:
+			log.Println("Vault is not initialised. Initialising...")
+		case 503:
+			log.Println("Vault is initialised, but still sealed. Use the tokens received after last initialisation to unseal. Exiting...")
+			return
+		default:
+			log.Printf("Vault is in an unknown state. Health status code: %d", healthCode)
+		}
 		// make vault init request and get root token
 		fmt.Println("Initialising Vault...")
-		rootToken := initVault()
+		rootToken := initVault(vaultAddr)
 		fmt.Println("Initialisation complete")
 
 		// AWS setup
@@ -130,20 +160,7 @@ func checkError(e error) {
 	}
 }
 
-func initVault() string {
-	vaultAddr := os.Getenv("VAULT_ADDR")
-	if vaultAddr == "" {
-		vaultAddr = "http://127.0.0.1:8200"
-	}
-
-	httpClient = http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: false,
-			},
-		},
-	}
-
+func initVault(vaultAddr string) string {
 	initRequest := InitPayload{
 		RecoveryShares:    1,
 		RecoveryThreshold: 1,
@@ -196,4 +213,33 @@ func openFile(filename string) *os.File {
 func fullKeyID(accountID string, keyID string, region string) (string) {
 	baseString := fmt.Sprintf("arn:aws:kms:%s:%s:key/%s", region, accountID, keyID)
 	return baseString
+}
+
+func healthCheck(vaultAddr string) int {
+	checkInterval := os.Getenv("CHECK_INTERVAL")
+	if checkInterval == "" {
+		checkInterval = "10"
+	}
+	checkIntervalNumber, strConfErr := strconv.Atoi(checkInterval)
+	checkError(strConfErr)
+
+	checkWaitTime := time.Duration(checkIntervalNumber) * time.Second
+
+	for {
+		response, healthErr := httpClient.Head(vaultAddr + "/v1/sys/health")
+
+		if response != nil && response.Body != nil {
+			response.Body.Close()
+		}
+
+		if healthErr != nil {
+			log.Println(healthErr)
+			fmt.Println("Sleeping")
+			time.Sleep(checkWaitTime)
+			fmt.Println("trying again")
+			continue
+		}
+
+		return response.StatusCode
+	}
 }
