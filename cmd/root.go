@@ -73,6 +73,7 @@ Once it has received the token in the response from Vault, it will encrypt and
 store this token on S3 from where it can be used for authentication by entities that
 need to read from or write to the Vault instance.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		intitialise := false
 		vaultAddr := os.Getenv("VAULT_ADDR")
 		if vaultAddr == "" {
 			vaultAddr = "http://127.0.0.1:8200"
@@ -93,59 +94,59 @@ need to read from or write to the Vault instance.`,
 
 		switch healthCode {
 		case 200:
-			log.Println("Vault is initialised and unsealed. Exiting...")
-			return
+			log.Println("Vault is initialised and unsealed. Going dormant...")
 		case 429:
-			log.Println("Vault is unsealed and in standby mode. Exiting...")
-			return
+			log.Println("Vault is unsealed and in standby mode. Going dormant...")
 		case 501:
 			log.Println("Vault is not initialised. Initialising...")
+			intitialise = true
 		case 503:
-			log.Println("Vault is initialised, but still sealed. Use the tokens received after last initialisation to unseal. Exiting...")
-			return
+			log.Println("Vault is initialised, but still sealed. Use the tokens received after last initialisation to unseal. Going dormant...")
 		default:
-			log.Printf("Vault is in an unknown state. Health status code: %d", healthCode)
+			log.Printf("Vault is in an unknown state. Health status code: %d. Going dormant...", healthCode)
 		}
-		// make vault init request and get root token
-		fmt.Println("Initialising Vault...")
-		rootToken := initVault(vaultAddr)
-		fmt.Println("Initialisation complete")
+		if intitialise {
+			// make vault init request and get root token
+			fmt.Println("Initialising Vault...")
+			rootToken := initVault(vaultAddr)
+			fmt.Println("Initialisation complete")
 
-		// AWS setup
-		region := os.Getenv("AWS_REGION")
-		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
-		var kmsClient = kms.New(sess, aws.NewConfig().WithRegion(region))
-		uploader := s3manager.NewUploader(sess)
+			// AWS setup
+			region := os.Getenv("AWS_REGION")
+			sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+			var kmsClient = kms.New(sess, aws.NewConfig().WithRegion(region))
+			uploader := s3manager.NewUploader(sess)
 
-		// encrypt tokens with AWS KMS
-		fmt.Println("Encrypting root token...")
-		encryptedToken, errE := kmsClient.Encrypt(&kms.EncryptInput{
-			KeyId: aws.String(fullKeyID(os.Args[1], os.Args[2], region)),
-			Plaintext: []byte(rootToken),
-		})
-		checkError(errE)
-		fmt.Println("Encryption complete.")
+			// encrypt tokens with AWS KMS
+			fmt.Println("Encrypting root token...")
+			encryptedToken, errE := kmsClient.Encrypt(&kms.EncryptInput{
+				KeyId: aws.String(fullKeyID(os.Args[1], os.Args[2], region)),
+				Plaintext: []byte(rootToken),
+			})
+			checkError(errE)
+			fmt.Println("Encryption complete.")
 
-		hostname, errH := os.Hostname()
-		if errH != nil {
-			panic(errH)
+			hostname, errH := os.Hostname()
+			if errH != nil {
+				panic(errH)
+			}
+
+			tokenFileName := hostname+ "_token"
+
+			writeToFile(tokenFileName, encryptedToken.CiphertextBlob)
+
+			// upload keys to S3
+			fmt.Println("Uploading encrypted token to S3...")
+			f := openFile(tokenFileName)
+
+			s3Result, errS3 := uploader.Upload(&s3manager.UploadInput{
+				Bucket: aws.String("encrypted-tokens"),
+				Key:    aws.String(tokenFileName),
+				Body:   f,
+			})
+			checkError(errS3)
+			fmt.Println("Encrypted token successfully uploaded to S3 at", s3Result.Location)
 		}
-
-		tokenFileName := hostname+ "_token"
-
-		writeToFile(tokenFileName, encryptedToken.CiphertextBlob)
-
-		// upload keys to S3
-		fmt.Println("Uploading encrypted token to S3...")
-		f := openFile(tokenFileName)
-
-		s3Result, errS3 := uploader.Upload(&s3manager.UploadInput{
-			Bucket: aws.String("encrypted-tokens"),
-			Key:    aws.String(tokenFileName),
-			Body:   f,
-		})
-		checkError(errS3)
-		fmt.Println("Encrypted token successfully uploaded to S3 at", s3Result.Location)
 		<-exit
 	},
 }
