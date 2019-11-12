@@ -77,13 +77,7 @@ need to read from or write to the Vault instance.`,
 			vaultAddr = "http://127.0.0.1:8200"
 		}
 
-		httpClient = http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: false,
-				},
-			},
-		}
+		httpClient = http.Client{}
 		healthCode := healthCheck(vaultAddr)
 		switch healthCode {
 		case 200:
