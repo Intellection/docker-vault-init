@@ -22,7 +22,6 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
@@ -34,14 +33,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 )
 
 
 var httpClient    http.Client
-
-var cfgFile string
+var sigChannel    chan os.Signal
+var exit          chan bool
 
 // InitPayload holds a Vault init request.
 type InitPayload struct {
@@ -77,8 +78,19 @@ need to read from or write to the Vault instance.`,
 			vaultAddr = "http://127.0.0.1:8200"
 		}
 
+		sigChannel = make(chan os.Signal, 1)
+		signal.Notify(sigChannel,
+			syscall.SIGINT,
+			syscall.SIGKILL,
+			syscall.SIGTERM,
+		)
+		exit = make(chan bool, 1)
+
 		httpClient = http.Client{}
 		healthCode := healthCheck(vaultAddr)
+
+		go handleSig()
+
 		switch healthCode {
 		case 200:
 			log.Println("Vault is initialised and unsealed. Exiting...")
@@ -134,6 +146,7 @@ need to read from or write to the Vault instance.`,
 		})
 		checkError(errS3)
 		fmt.Println("Encrypted token successfully uploaded to S3 at", s3Result.Location)
+		<-exit
 	},
 }
 
@@ -220,6 +233,14 @@ func healthCheck(vaultAddr string) int {
 	checkWaitTime := time.Duration(checkIntervalNumber) * time.Second
 
 	for {
+		select {
+		case <-sigChannel:
+			fmt.Println()
+			fmt.Println("Shutting down...")
+			os.Exit(0)
+		default:
+		}
+
 		response, healthErr := httpClient.Head(vaultAddr + "/v1/sys/health")
 
 		if response != nil && response.Body != nil {
@@ -236,4 +257,12 @@ func healthCheck(vaultAddr string) int {
 
 		return response.StatusCode
 	}
+}
+
+func handleSig() {
+	<-sigChannel
+	fmt.Println()
+	fmt.Println("Shutting down...")
+	os.Exit(0)
+	exit <- true
 }
