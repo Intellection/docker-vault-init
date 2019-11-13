@@ -105,6 +105,7 @@ need to read from or write to the Vault instance.`,
 		default:
 			log.Printf("Vault is in an unknown state. Health status code: %d. Going dormant...", healthCode)
 		}
+
 		if intitialise {
 			// make vault init request and get root token
 			fmt.Println("Initialising Vault...")
@@ -147,6 +148,7 @@ need to read from or write to the Vault instance.`,
 			checkError(errS3)
 			fmt.Println("Encrypted token successfully uploaded to S3 at", s3Result.Location)
 		}
+
 		<-exit
 	},
 }
