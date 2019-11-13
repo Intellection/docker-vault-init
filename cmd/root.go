@@ -22,7 +22,6 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
@@ -34,12 +33,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
 )
 
 
 var httpClient    http.Client
-
-var cfgFile string
+var sigChannel    chan os.Signal
+var exit          chan bool
 
 // InitPayload holds a Vault init request.
 type InitPayload struct {
@@ -70,46 +73,83 @@ Once it has received the token in the response from Vault, it will encrypt and
 store this token on S3 from where it can be used for authentication by entities that
 need to read from or write to the Vault instance.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// make vault init request and get root token
-		fmt.Println("Initialising Vault...")
-		rootToken := initVault()
-		fmt.Println("Initialisation complete")
-
-		// AWS setup
-		region := os.Getenv("AWS_REGION")
-		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
-		var kmsClient = kms.New(sess, aws.NewConfig().WithRegion(region))
-		uploader := s3manager.NewUploader(sess)
-
-		// encrypt tokens with AWS KMS
-		fmt.Println("Encrypting root token...")
-		encryptedToken, errE := kmsClient.Encrypt(&kms.EncryptInput{
-			KeyId: aws.String(fullKeyID(os.Args[1], os.Args[2], region)),
-			Plaintext: []byte(rootToken),
-		})
-		checkError(errE)
-		fmt.Println("Encryption complete.")
-
-		hostname, errH := os.Hostname()
-		if errH != nil {
-			panic(errH)
+		intitialise := false
+		vaultAddr := os.Getenv("VAULT_ADDR")
+		if vaultAddr == "" {
+			vaultAddr = "http://127.0.0.1:8200"
 		}
 
-		tokenFileName := hostname+ "_token"
+		sigChannel = make(chan os.Signal, 1)
+		signal.Notify(sigChannel,
+			syscall.SIGINT,
+			syscall.SIGKILL,
+			syscall.SIGTERM,
+		)
+		exit = make(chan bool, 1)
 
-		writeToFile(tokenFileName, encryptedToken.CiphertextBlob)
+		httpClient = http.Client{}
+		healthCode := healthCheck(vaultAddr)
 
-		// upload keys to S3
-		fmt.Println("Uploading encrypted token to S3...")
-		f := openFile(tokenFileName)
+		go handleSig()
 
-		s3Result, errS3 := uploader.Upload(&s3manager.UploadInput{
-			Bucket: aws.String("encrypted-tokens"),
-			Key:    aws.String(tokenFileName),
-			Body:   f,
-		})
-		checkError(errS3)
-		fmt.Println("Encrypted token successfully uploaded to S3 at", s3Result.Location)
+		switch healthCode {
+		case 200:
+			log.Println("Vault is initialised and unsealed. Going dormant...")
+		case 429:
+			log.Println("Vault is unsealed and in standby mode. Going dormant...")
+		case 501:
+			log.Println("Vault is not initialised. Initialising...")
+			intitialise = true
+		case 503:
+			log.Println("Vault is initialised, but still sealed. Use the tokens received after last initialisation to unseal. Going dormant...")
+		default:
+			log.Printf("Vault is in an unknown state. Health status code: %d. Going dormant...", healthCode)
+		}
+
+		if intitialise {
+			// make vault init request and get root token
+			fmt.Println("Initialising Vault...")
+			rootToken := initVault(vaultAddr)
+			fmt.Println("Initialisation complete")
+
+			// AWS setup
+			region := os.Getenv("AWS_REGION")
+			sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+			var kmsClient = kms.New(sess, aws.NewConfig().WithRegion(region))
+			uploader := s3manager.NewUploader(sess)
+
+			// encrypt tokens with AWS KMS
+			fmt.Println("Encrypting root token...")
+			encryptedToken, errE := kmsClient.Encrypt(&kms.EncryptInput{
+				KeyId: aws.String(fullKeyID(os.Args[1], os.Args[2], region)),
+				Plaintext: []byte(rootToken),
+			})
+			checkError(errE)
+			fmt.Println("Encryption complete.")
+
+			hostname, errH := os.Hostname()
+			if errH != nil {
+				panic(errH)
+			}
+
+			tokenFileName := hostname+ "_token"
+
+			writeToFile(tokenFileName, encryptedToken.CiphertextBlob)
+
+			// upload keys to S3
+			fmt.Println("Uploading encrypted token to S3...")
+			f := openFile(tokenFileName)
+
+			s3Result, errS3 := uploader.Upload(&s3manager.UploadInput{
+				Bucket: aws.String("encrypted-tokens"),
+				Key:    aws.String(tokenFileName),
+				Body:   f,
+			})
+			checkError(errS3)
+			fmt.Println("Encrypted token successfully uploaded to S3 at", s3Result.Location)
+		}
+
+		<-exit
 	},
 }
 
@@ -130,20 +170,7 @@ func checkError(e error) {
 	}
 }
 
-func initVault() string {
-	vaultAddr := os.Getenv("VAULT_ADDR")
-	if vaultAddr == "" {
-		vaultAddr = "http://127.0.0.1:8200"
-	}
-
-	httpClient = http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: false,
-			},
-		},
-	}
-
+func initVault(vaultAddr string) string {
 	initRequest := InitPayload{
 		RecoveryShares:    1,
 		RecoveryThreshold: 1,
@@ -196,4 +223,49 @@ func openFile(filename string) *os.File {
 func fullKeyID(accountID string, keyID string, region string) (string) {
 	baseString := fmt.Sprintf("arn:aws:kms:%s:%s:key/%s", region, accountID, keyID)
 	return baseString
+}
+
+func healthCheck(vaultAddr string) int {
+	checkInterval := os.Getenv("CHECK_INTERVAL")
+	if checkInterval == "" {
+		checkInterval = "10"
+	}
+	checkIntervalNumber, strConfErr := strconv.Atoi(checkInterval)
+	checkError(strConfErr)
+
+	checkWaitTime := time.Duration(checkIntervalNumber) * time.Second
+
+	for {
+		select {
+		case <-sigChannel:
+			fmt.Println()
+			fmt.Println("Shutting down...")
+			os.Exit(0)
+		default:
+		}
+
+		response, healthErr := httpClient.Head(vaultAddr + "/v1/sys/health")
+
+		if response != nil && response.Body != nil {
+			response.Body.Close()
+		}
+
+		if healthErr != nil {
+			log.Println(healthErr)
+			fmt.Println("Sleeping")
+			time.Sleep(checkWaitTime)
+			fmt.Println("trying again")
+			continue
+		}
+
+		return response.StatusCode
+	}
+}
+
+func handleSig() {
+	<-sigChannel
+	fmt.Println()
+	fmt.Println("Shutting down...")
+	exit <- true
+	os.Exit(0)
 }
