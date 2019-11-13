@@ -121,7 +121,7 @@ need to read from or write to the Vault instance.`,
 			// encrypt tokens with AWS KMS
 			fmt.Println("Encrypting root token...")
 			encryptedToken, errE := kmsClient.Encrypt(&kms.EncryptInput{
-				KeyId: aws.String(fullKeyID(os.Args[1], os.Args[2], region)),
+				KeyId: aws.String(fullKeyID(os.Getenv("AWS_ACCOUNT_NUMBER"), os.Getenv("AWS_KMS_KEY_ID"), region)),
 				Plaintext: []byte(rootToken),
 			})
 			checkError(errE)
