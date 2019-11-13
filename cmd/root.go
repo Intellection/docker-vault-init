@@ -266,6 +266,6 @@ func handleSig() {
 	<-sigChannel
 	fmt.Println()
 	fmt.Println("Shutting down...")
-	os.Exit(0)
 	exit <- true
+	os.Exit(0)
 }
